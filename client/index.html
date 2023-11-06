@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Realtime Chat</title>
+  <script type="module">
+    import { io } from "https://cdn.socket.io/4.3.2/socket.io.esm.min.js";
+
+    const getRandomUsername = async () => {
+      const localUsername = localStorage.getItem('username')
+
+      if (localUsername) {
+        return localUsername;
+      }
+
+      const randomUsernameFetch = await fetch('https://random-data-api.com/api/users/random_user')
+
+      const { username } = await randomUsernameFetch.json();
+
+      localStorage.setItem('username', username)
+      return username;
+    }
+
+    // create socket for client
+    const socket = io({
+      auth: {
+        username: await getRandomUsername() ?? 'anonymous',
+        serverOffset: 0
+      }
+    })
+
+    const form = document.querySelector('form');
+    const messages = document.querySelector('#messages');
+
+    // client response to the event 'chat message'
+    socket.on('chat message', (msg, serverOffset, username) => {
+      const li = document.createElement('li');
+      const msgSpan = document.createElement('span');
+      const userSpan = document.createElement('span');
+
+      msgSpan.className = 'msg';
+      userSpan.className = 'user';
+
+      msgSpan.textContent = msg;
+      userSpan.textContent = `@${username}`;
+
+      li.appendChild(msgSpan);
+      li.appendChild(userSpan);
+      messages.appendChild(li);
+      socket.auth.serverOffset = serverOffset;
+      messages.scrollTop = messages.scrollHeight;
+    })
+
+    form.onsubmit = (e) => {
+      e.preventDefault();
+      const message = document.querySelector('#message');
+
+      if (!message.value) return
+
+      socket.emit('chat message', message.value);
+      message.value = '';
+    }
+
+  </script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap');
+
+    :root {
+      line-height: 1.5;
+      font-weight: 400;
+
+      color-scheme: light dark;
+      color: rgba(255, 255, 255, 0.87);
+      background-color: #000000;
+
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    *,
+    *::after,
+    *::before {
+      box-sizing: border-box;
+      font-family: 'Lexend', system-ui, Avenir, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      display: grid;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px 0;
+      margin: 0;
+    }
+
+    #chat {
+      height: 90vh;
+      width: 500px;
+      border-radius: 20px;
+      border: 1px solid #7a7a7a;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column-reverse;
+      padding: 0 15px;
+    }
+
+    form {
+      display: flex;
+      justify-content: space-evenly;
+      padding: 15px 0px;
+      display: flex;
+      justify-content: space-around;
+      gap: 20px;
+    }
+
+    input {
+      flex: max-content;
+      border-radius: 10px;
+      border: none;
+      padding: 0 10px;
+    }
+
+    button {
+      border-radius: 10px;
+      border: 1px solid transparent;
+      padding: 0.4em .7em;
+      font-size: .75rem;
+      font-weight: 500;
+      font-family: inherit;
+      background-color: #1a1a1a;
+      cursor: pointer;
+      transition: border-color 0.25s;
+      height: 35px;
+      width: 100%;
+      flex: 0;
+    }
+
+    button:hover {
+      border-color: #646cff;
+    }
+
+    button:focus,
+    button:focus-visible {
+      outline: 4px auto -webkit-focus-ring-color;
+    }
+
+    #messages {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: start;
+      gap: 10px;
+      overflow-y: auto;
+      scroll-behavior: smooth;
+    }
+
+    #messages li {
+      min-width: 100px;
+      max-width: 300px;
+      background-color: #3c42af;
+      font-size: 0.8rem;
+      padding: 5px 10px;
+      border-radius: 5px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .msg {
+      padding: 5px 0;
+    }
+
+    .user {
+      opacity: .6;
+      font-size: .6rem;
+      align-self: end;
+    }
+  </style>
+</head>
+
+<body>
+  <section id="chat">
+    <form id="form">
+      <input type="text" id="message" placeholder="Type a message">
+      <button type="submit">Send</button>
+    </form>
+    <ul id="messages">
+    </ul>
+  </section>
+</body>
+
+</html>
